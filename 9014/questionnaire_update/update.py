@@ -1318,5 +1318,44 @@ def delete_response():
 	except Exception as e:
 		return jsonify({"success": False, "error": str(e)}), 500
 
+@app.route('/api/survey-logic/<int:survey_id>', methods=['GET'])
+def get_survey_logic(survey_id):
+    """Get specific logic fields for a survey"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        # Check if survey exists
+        survey_query = "SELECT COUNT(*) as count FROM survey WHERE survey_id = %s"
+        cursor.execute(survey_query, (survey_id,))
+        if cursor.fetchone()['count'] == 0:
+            cursor.close()
+            conn.close()
+            return jsonify({"success": False, "error": "Survey not found"}), 404
+
+        # Get only the requested fields from survey_logic
+        logic_query = """
+        SELECT 
+            survey_id,
+            question_id,
+            option_id,
+            action_type,
+            target_question_id
+        FROM survey_logic
+        WHERE survey_id = %s
+        """
+        cursor.execute(logic_query, (survey_id,))
+        logic_rules = cursor.fetchall()
+
+        cursor.close()
+        conn.close()
+
+        return jsonify({
+            "success": True,
+            "data": logic_rules
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
 if __name__ == '__main__':
 	app.run(debug=True, port=5000)
